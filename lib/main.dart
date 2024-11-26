@@ -182,7 +182,7 @@ class _HomePageState extends State<HomePage>
       ),
       backgroundColor: DefaultColor,
       body: ListView.builder(
-        itemCount: parsedData!.length,
+        itemCount: parsedData!["config"].length,
         itemBuilder: (BuildContext context, index)
         {
           return getTaskItem(
