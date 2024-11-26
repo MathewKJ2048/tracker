@@ -20,15 +20,19 @@ void save_file(parsedObject)
   String toWrite = jsonEncode(parsedObject);
   File(filePath).writeAsStringSync(toWrite);
 }
-String get_date()
+String get_date_string(date_obj)
 {
-  final now = DateTime.now();
-  return now.toString().split(" ")[0];
+  return date_obj.toString().split(" ")[0];
+}
+String get_day(date_obj)
+{
+  List days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  return days[date_obj.weekday%7];
 }
 void add_date_entry(date,jsonObj)
 {
   if(!jsonObj.containsKey(date))jsonObj[date] = [];
-  tell(jsonObj);
+  // tell(jsonObj);
 }
 bool check_presence(int event_index, String date, jsonObj)
 {
@@ -97,7 +101,12 @@ Widget getTaskItem(taskName, taskCompleted, onChanged)
 {
   return Padding
   (
-    padding: const EdgeInsets.all(2),
+    padding: const EdgeInsets.only(
+      left: 4,
+      right: 4,
+      top: 4,
+      bottom: 0
+    ),
     child: Container(
       decoration: BoxDecoration(
         color: AccentColor,
@@ -125,14 +134,28 @@ class _HomePageState extends State<HomePage>
 {
 
   Map<String, dynamic>? parsedData;
+  DateTime? date;
+  void dateReset()
+  {
+    setState(() {
+      date = DateTime.now();
+    });
+  }
+  void dateChanged(int amt)
+  {
+    setState(() {
+      date = date?.add(Duration(days: amt));
+      add_date_entry(get_date_string(date),parsedData!["data"]);  
+    });
+  }
   void checkBoxChanged(int index, String date, parsedData)
   {
     setState(() {
       final jsonObj = parsedData["data"];
-      bool p = check_presence(index, date, jsonObj);
-      set_presence(index, date, jsonObj, !p);
+      bool p = check_presence(index, get_date_string(date), jsonObj);
+      set_presence(index, get_date_string(date), jsonObj, !p);
       save_file(parsedData);
-      tell(jsonObj);
+      // tell(jsonObj);
     });
   }
   @override
@@ -141,11 +164,22 @@ class _HomePageState extends State<HomePage>
     super.initState();
     auxFilePermission();
     parsedData = parse(resolveFiles());
-    add_date_entry(get_date(),parsedData!["data"]);
+    date = DateTime.now();
+    add_date_entry(get_date_string(date),parsedData!["data"]);
   }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: getListText("${get_date_string(date)}    ${get_day(date)}"),
+        centerTitle: false, 
+        backgroundColor: AccentColor,
+        actions: [
+          IconButton(onPressed: ()=>dateChanged(-1), icon: const Icon(Icons.arrow_back)),
+          IconButton(onPressed: ()=>dateReset(), icon: const Icon(Icons.replay_outlined)),
+          IconButton(onPressed: ()=>dateChanged(1), icon: const Icon(Icons.arrow_forward))
+        ],
+      ),
       backgroundColor: DefaultColor,
       body: ListView.builder(
         itemCount: parsedData!.length,
@@ -153,8 +187,8 @@ class _HomePageState extends State<HomePage>
         {
           return getTaskItem(
             parsedData!["config"][index.toString()]["name"],
-            check_presence(index, get_date(), parsedData!["data"]),
-            (value) => checkBoxChanged(index,get_date(),parsedData),
+            check_presence(index, get_date_string(date), parsedData!["data"]),
+            (value) => checkBoxChanged(index,get_date_string(date),parsedData),
           );
         },
       )
